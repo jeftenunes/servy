@@ -2,8 +2,10 @@ defmodule Servy.Handler do
   def handle(request) do
     request
     |> parse()
+    |> rewrite_path()
     |> log()
     |> route()
+    |> track()
     |> format_response()
   end
 
@@ -22,20 +24,33 @@ defmodule Servy.Handler do
     %{method: method, path: path, resp_body: "", http_status_code: nil}
   end
 
-  def route(conv),
-    do: route(conv, conv.method, conv.path)
+  def rewrite_path(%{path: "/wildlife"} = conv),
+    do: %{conv | path: "/wildthings"}
 
-  def route(conv, "GET", "/wildthings"),
+  def rewrite_path(conv),
+    do: conv
+
+  def route(%{method: "GET", path: "/wildthings"} = conv),
     do: %{conv | resp_body: "Bears, Lions, Tigers", http_status_code: 200}
 
-  def route(conv, "GET", "/bears"),
+  def route(%{method: "GET", path: "/bears"} = conv),
     do: %{conv | resp_body: "Teddy, Smokey, Paddington", http_status_code: 200}
 
-  def route(conv, "GET", "/bears/" <> id),
+  def route(%{method: "GET", path: "/bears/" <> id} = conv),
     do: %{conv | resp_body: "Bear id #{id}", http_status_code: 200}
 
-  def route(conv, _, path),
+  def route(%{method: _, path: path} = conv),
     do: %{conv | resp_body: "#{path} not found", http_status_code: 404}
+
+  def track(%{http_status_code: 200, path: path} = conv) do
+    IO.puts("#{path} OK 200")
+    conv
+  end
+
+  def track(%{http_status_code: 404, path: path} = conv) do
+    IO.puts("Path #{path} not found")
+    conv
+  end
 
   def format_response(conv) do
     """
@@ -75,11 +90,12 @@ end
 # """
 
 # request_wildthings = """
-#   GET /wildthings HTTP/1.1
+#   GET /wildlife HTTP/1.1
 #   HOST: exemple.com
 #   User-Agent: ExampleBrowser/1.0
 #   Accept: */*
 # """
+
 # expected_response = """
 # HTTP/1.1 200 OK
 # Content-Type: text/html
