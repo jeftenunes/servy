@@ -1,13 +1,22 @@
 defmodule Servy.Handler do
+  require Logger
+
   def handle(request) do
     request
     |> parse()
     |> rewrite_path()
     |> log()
     |> route()
+    |> emojify()
     |> track()
     |> format_response()
   end
+
+  def emojify(%{http_status_code: 200, resp_body: response_body} = conv),
+    do: %{conv | resp_body: "#{response_body} 🎉"}
+
+  def emojify(%{method: _, http_status_code: _, resp_body: _, path: _} = conv),
+    do: conv
 
   def log(conv), do: IO.inspect(conv)
 
@@ -30,6 +39,12 @@ defmodule Servy.Handler do
   def rewrite_path(conv),
     do: conv
 
+  def route(%{method: "DELETE", path: "/bears"} = conv),
+    do: %{conv | resp_body: "Bears must not be deleted", http_status_code: 403}
+
+  def route(%{method: "DELETE", path: _} = conv),
+    do: %{conv | resp_body: "", http_status_code: 204}
+
   def route(%{method: "GET", path: "/wildthings"} = conv),
     do: %{conv | resp_body: "Bears, Lions, Tigers", http_status_code: 200}
 
@@ -39,16 +54,23 @@ defmodule Servy.Handler do
   def route(%{method: "GET", path: "/bears/" <> id} = conv),
     do: %{conv | resp_body: "Bear id #{id}", http_status_code: 200}
 
+  # def route(%{method: "GET", path: path} = conv) do
+  #   regex = ~r{\/(?<resource>\w+)\/id\/(?<id>\d+)}
+  #   captures = Regex.named_captures(regex, path)
+
+  #   route_extract_path(conv, captures)
+  # end
+
   def route(%{method: _, path: path} = conv),
     do: %{conv | resp_body: "#{path} not found", http_status_code: 404}
 
-  def track(%{http_status_code: 200, path: path} = conv) do
-    IO.puts("#{path} OK 200")
+  def track(%{http_status_code: 404, path: path} = conv) do
+    Logger.warning("Path #{path} not found")
     conv
   end
 
-  def track(%{http_status_code: 404, path: path} = conv) do
-    IO.puts("Path #{path} not found")
+  def track(%{http_status_code: status_code, path: path} = conv) do
+    Logger.info("#{path} OK #{status_code}")
     conv
   end
 
@@ -56,7 +78,7 @@ defmodule Servy.Handler do
     """
     HTTP/1.1 #{conv.http_status_code} #{status_reason(conv.http_status_code)}
     Content-Type: text/html
-    Content-Length: #{String.length(conv.resp_body)}
+    Content-Length: #{byte_size(conv.resp_body)}
 
     #{conv.resp_body}
     """
@@ -66,6 +88,7 @@ defmodule Servy.Handler do
     %{
       200 => "OK",
       201 => "Created",
+      204 => "NoContent",
       400 => "BadRequest",
       401 => "Unauthorized",
       403 => "Forbidden",
@@ -73,10 +96,27 @@ defmodule Servy.Handler do
       500 => "InternaServerError"
     }[http_status_code]
   end
+
+  defp route_extract_path(conv, nil), do: conv
+
+  defp route_extract_path(conv, %{"id" => id, "resource" => resource}),
+    do: %{
+      conv
+      | path: "/#{resource}/#{id}",
+        resp_body: "#{resource} id #{id}",
+        http_status_code: 200
+    }
 end
 
 # request_bears = """
 #   GET /bears HTTP/1.1
+#   HOST: exemple.com
+#   User-Agent: ExampleBrowser/1.0
+#   Accept: */*
+# """
+
+# delete = """
+#   DELETE /bears HTTP/1.1
 #   HOST: exemple.com
 #   User-Agent: ExampleBrowser/1.0
 #   Accept: */*
