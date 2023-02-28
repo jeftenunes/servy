@@ -33,26 +33,36 @@ defmodule Servy.Handler do
     %{method: method, path: path, resp_body: "", http_status_code: nil}
   end
 
-  def rewrite_path(%{path: "/wildlife"} = conv),
-    do: %{conv | path: "/wildthings"}
+  def rewrite_path(%{path: "/bel"} = conv),
+    do: %{conv | path: "/belchior"}
 
   def rewrite_path(conv),
     do: conv
 
-  def route(%{method: "DELETE", path: "/bears"} = conv),
-    do: %{conv | resp_body: "Bears must not be deleted", http_status_code: 403}
+  def route(%{method: "DELETE", path: "/belchior"} = conv),
+    do: %{conv | resp_body: "Belchior must not be deleted", http_status_code: 403}
 
   def route(%{method: "DELETE", path: _} = conv),
     do: %{conv | resp_body: "", http_status_code: 204}
 
-  def route(%{method: "GET", path: "/wildthings"} = conv),
-    do: %{conv | resp_body: "Bears, Lions, Tigers", http_status_code: 200}
+  def route(%{method: "GET", path: "/belchior"} = conv),
+    do: %{conv | resp_body: "Pequeno mapa do tempo", http_status_code: 200}
 
-  def route(%{method: "GET", path: "/bears"} = conv),
-    do: %{conv | resp_body: "Teddy, Smokey, Paddington", http_status_code: 200}
+  def route(%{method: "GET", path: "/amelinha"} = conv),
+    do: %{conv | resp_body: "Foi deus", http_status_code: 200}
 
-  def route(%{method: "GET", path: "/bears/" <> id} = conv),
-    do: %{conv | resp_body: "Bear id #{id}", http_status_code: 200}
+  def route(%{method: "GET", path: "/artists/" <> id} = conv),
+    do: %{conv | resp_body: "artist id #{id}", http_status_code: 200}
+
+  def route(%{method: "GET", path: "/pages" <> page} = conv) do
+    Path.expand("../../pages", __DIR__)
+    |> Path.join(page)
+    |> File.read()
+    |> handle_file(conv)
+  end
+
+  def route(%{method: _, path: path} = conv),
+    do: %{conv | resp_body: "#{path} not found", http_status_code: 404}
 
   # def route(%{method: "GET", path: path} = conv) do
   #   regex = ~r{\/(?<resource>\w+)\/id\/(?<id>\d+)}
@@ -61,8 +71,18 @@ defmodule Servy.Handler do
   #   route_extract_path(conv, captures)
   # end
 
-  def route(%{method: _, path: path} = conv),
+  defp handle_file({:ok, contents}, conv),
+    do: %{conv | resp_body: contents, http_status_code: 200}
+
+  defp handle_file({:error, :enoent}, %{path: path} = conv),
     do: %{conv | resp_body: "#{path} not found", http_status_code: 404}
+
+  defp handle_file({:error, reason}, %{path: path} = conv),
+    do: %{
+      conv
+      | resp_body: "InternalServerError searching #{path} - #{reason}",
+        http_status_code: 500
+    }
 
   def track(%{http_status_code: 404, path: path} = conv) do
     Logger.warning("Path #{path} not found")
@@ -70,7 +90,7 @@ defmodule Servy.Handler do
   end
 
   def track(%{http_status_code: status_code, path: path} = conv) do
-    Logger.info("#{path} OK #{status_code}")
+    Logger.info("#{path} #{status_reason(status_code)} #{status_code}")
     conv
   end
 
