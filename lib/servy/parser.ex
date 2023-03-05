@@ -1,4 +1,6 @@
 defmodule Servy.Parser do
+  alias Servy.Conv, as: Conv
+
   def parse(req) do
     # conv = Conversation
     # TODO: Parse the request string into a map:
@@ -9,6 +11,6 @@ defmodule Servy.Parser do
       |> String.trim()
       |> String.split(" ")
 
-    %{method: method, path: path, resp_body: "", http_status_code: nil}
+    %Conv{method: method, path: path, resp_body: "", status_code: nil}
   end
 end
