@@ -3,9 +3,9 @@ defmodule Servy.Handler do
   Handles http requests
   """
 
-  alias Servy.Common, as: Common
-
   require Logger
+  alias Servy.Conv, as: Conv
+  alias Servy.Common, as: Common
   import Servy.Parser, only: [parse: 1]
   import Servy.Plugins, only: [rewrite_path: 1, log: 1, track: 1]
 
@@ -25,48 +25,48 @@ defmodule Servy.Handler do
     |> format_response()
   end
 
-  def emojify(%{http_status_code: 200, resp_body: response_body} = conv),
-    do: %{conv | resp_body: "#{response_body} 🎉"}
+  def emojify(%Conv{status_code: 200, resp_body: response_body} = conv),
+    do: %Conv{conv | resp_body: "#{response_body} 🎉"}
 
-  def emojify(%{method: _, http_status_code: _, resp_body: _, path: _} = conv),
+  def emojify(%Conv{method: _, status_code: _, resp_body: _, path: _} = conv),
     do: conv
 
-  def route(%{method: "DELETE", path: "/belchior"} = conv),
-    do: %{conv | resp_body: "Belchior must not be deleted", http_status_code: 403}
+  def route(%Conv{method: "DELETE", path: "/belchior"} = conv),
+    do: %Conv{conv | resp_body: "Belchior must not be deleted", status_code: 403}
 
   def route(%{method: "DELETE", path: _} = conv),
     do: %{conv | resp_body: "", http_status_code: 204}
 
-  def route(%{method: "GET", path: "/belchior"} = conv),
-    do: %{conv | resp_body: "Pequeno mapa do tempo", http_status_code: 200}
+  def route(%Conv{method: "GET", path: "/belchior"} = conv),
+    do: %Conv{conv | resp_body: "Pequeno mapa do tempo", status_code: 200}
 
-  def route(%{method: "GET", path: "/amelinha"} = conv),
-    do: %{conv | resp_body: "Foi deus", http_status_code: 200}
+  def route(%Conv{method: "GET", path: "/amelinha"} = conv),
+    do: %Conv{conv | resp_body: "Foi deus", status_code: 200}
 
-  def route(%{method: "GET", path: "/artists/" <> id} = conv),
-    do: %{conv | resp_body: "artist id #{id}", http_status_code: 200}
+  def route(%Conv{method: "GET", path: "/artists/" <> id} = conv),
+    do: %Conv{conv | resp_body: "artist id #{id}", status_code: 200}
 
-  def route(%{method: "GET", path: "/pages" <> page} = conv) do
+  def route(%Conv{method: "GET", path: "/pages" <> page} = conv) do
     @pages_path
     |> Path.join(page)
     |> File.read()
     |> handle_file(conv)
   end
 
-  def route(%{method: _, path: path} = conv),
-    do: %{conv | resp_body: "#{path} not found", http_status_code: 404}
+  def route(%Conv{method: _, path: path} = conv),
+    do: %Conv{conv | resp_body: "#{path} not found", status_code: 404}
 
   defp handle_file({:ok, contents}, conv),
-    do: %{conv | resp_body: contents, http_status_code: 200}
+    do: %Conv{conv | resp_body: contents, status_code: 200}
 
-  defp handle_file({:error, :enoent}, %{path: path} = conv),
-    do: %{conv | resp_body: "#{path} not found", http_status_code: 404}
+  defp handle_file({:error, :enoent}, %Conv{path: path} = conv),
+    do: %Conv{conv | resp_body: "#{path} not found", status_code: 404}
 
-  defp handle_file({:error, reason}, %{path: path} = conv),
-    do: %{
+  defp handle_file({:error, reason}, %Conv{path: path} = conv),
+    do: %Conv{
       conv
       | resp_body: "InternalServerError searching #{path} - #{reason}",
-        http_status_code: 500
+        status_code: 500
     }
 
   def format_response(conv) do
