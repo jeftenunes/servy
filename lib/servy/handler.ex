@@ -46,6 +46,13 @@ defmodule Servy.Handler do
   def route(%Conv{method: "GET", path: "/artists/" <> id} = conv),
     do: %Conv{conv | resp_body: "artist id #{id}", status_code: 200}
 
+  def route(%Conv{method: "POST", path: "/albums"} = conv),
+    do: %Conv{
+      conv
+      | resp_body: "Album #{conv.params["name"]} by #{conv.params["artist"]} created",
+        status_code: 201
+    }
+
   def route(%Conv{method: "GET", path: "/pages" <> page} = conv) do
     @pages_path
     |> Path.join(page)
@@ -69,9 +76,9 @@ defmodule Servy.Handler do
         status_code: 500
     }
 
-  def format_response(conv) do
+  def format_response(%Conv{} = conv) do
     """
-    HTTP/1.1 #{conv.http_status_code} #{Common.status_reason(conv.http_status_code)}
+    HTTP/1.1 #{conv.status_code} #{Conv.status_reason(conv.status_code)}
     Content-Type: text/html
     Content-Length: #{byte_size(conv.resp_body)}
 
