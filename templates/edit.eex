@@ -1,0 +1,6 @@
+<form>
+    <label for="album.name">Name</label>
+    <input type="text" name="album.name" value="<%= album.name %>"/>
+    <label for="album.artist">Name</label>
+    <input type="text" name="album.artist" value="<%= album.artist %>"/>
+</form>

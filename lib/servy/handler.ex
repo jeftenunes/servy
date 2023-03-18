@@ -5,9 +5,9 @@ defmodule Servy.Handler do
 
   require Logger
   alias Servy.Conv, as: Conv
-  alias Servy.Common, as: Common
   import Servy.Parser, only: [parse: 1]
   import Servy.Plugins, only: [rewrite_path: 1, log: 1, track: 1]
+  alias Servy.Controllers.AlbumsController, as: AlbumController
 
   @pages_path Path.expand("../../pages", __DIR__)
 
@@ -34,8 +34,8 @@ defmodule Servy.Handler do
   def route(%Conv{method: "DELETE", path: "/belchior"} = conv),
     do: %Conv{conv | resp_body: "Belchior must not be deleted", status_code: 403}
 
-  def route(%{method: "DELETE", path: _} = conv),
-    do: %{conv | resp_body: "", http_status_code: 204}
+  # def route(%{method: "DELETE", path: _} = conv),
+  #   do: %{conv | resp_body: "", http_status_code: 204}
 
   def route(%Conv{method: "GET", path: "/belchior"} = conv),
     do: %Conv{conv | resp_body: "Pequeno mapa do tempo", status_code: 200}
@@ -46,12 +46,17 @@ defmodule Servy.Handler do
   def route(%Conv{method: "GET", path: "/artists/" <> id} = conv),
     do: %Conv{conv | resp_body: "artist id #{id}", status_code: 200}
 
-  def route(%Conv{method: "POST", path: "/albums"} = conv),
-    do: %Conv{
-      conv
-      | resp_body: "Album #{conv.params["name"]} by #{conv.params["artist"]} created",
-        status_code: 201
-    }
+  def route(%Conv{method: "GET", path: "/albums/"} = conv),
+    do: AlbumController.index(conv)
+
+  def route(%Conv{method: "GET", path: "/albums/" <> id} = conv),
+    do: AlbumController.edit(conv, %{"id" => id})
+
+  def route(%Conv{method: "POST", path: "/albums/"} = conv),
+    do: AlbumController.create(conv, conv.params)
+
+  def route(%Conv{method: "DELETE", path: "/albums/"} = conv),
+    do: AlbumController.delete(conv, conv.params)
 
   def route(%Conv{method: "GET", path: "/pages" <> page} = conv) do
     @pages_path

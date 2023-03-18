@@ -1,0 +1,7 @@
+<h1>All of my albums!</h1>
+
+<ul>
+    <%= for album <- albums do  %>
+        <li> <%= album.name %>, <%= album.artist %> </li>
+    <%end %>
+</ul>
