@@ -1,6 +1,6 @@
 # Servy
 
-**TODO: Add description**
+Servy is a basic web server project built to demonstrate the fundamental concepts of HTTP servers, request handling, and response generation in Elixir. This project is an excellent starting point for beginners who want to understand how web servers operate at a low level. The repository includes examples of routing, handling different HTTP methods, and serving static files.
 
 ## Installation
 
